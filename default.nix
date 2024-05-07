@@ -451,12 +451,18 @@ let
       in pkgs.runCommand "image-${baseNameOf name}.json"
       {
         inherit imageName meta;
-        passthru = {
+        passthru = let
+          imageRef = builtins.unsafeDiscardStringContext "${imageName}:${imageTag}";
+        in {
           inherit fromImage imageTag;
           # provide a cheap to evaluate image reference for use with external tools like docker
           # DO NOT use as an input to other derivations, as there is no guarantee that the image
           # reference will exist in the store.
-          imageRefUnsafe = builtins.unsafeDiscardStringContext "${imageName}:${imageTag}";
+          imageRefUnsafe = imageRef;
+          imageRefFileUnsafe = pkgs.writeTextFile {
+            name = "docker-image-name";
+            text = imageRef;
+          };
           copyToDockerDaemon = copyToDockerDaemon image;
           copyToRegistry = copyToRegistry image;
           copyToPodman = copyToPodman image;
